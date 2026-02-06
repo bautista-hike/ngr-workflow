@@ -54,83 +54,85 @@ def load_authorized_users():
     """Cargar lista de usuarios autorizados y superadmins desde el archivo JSON o variables de entorno"""
     global authorized_emails, superadmin_emails
     
-    # Primero, intentar cargar desde variables de entorno (para inicialización)
+    # Cargar desde variables de entorno (siempre disponible, persiste entre deploys)
     initial_superadmin = os.getenv('INITIAL_SUPERADMIN_EMAIL', '').strip()
     initial_users = os.getenv('INITIAL_AUTHORIZED_EMAILS', '').strip()
+    # Variable adicional para mantener lista completa de usuarios (se actualiza manualmente cuando se agregan)
+    persistent_users = os.getenv('AUTHORIZED_USERS_LIST', '').strip()
+    persistent_superadmins = os.getenv('SUPERADMIN_USERS_LIST', '').strip()
     
     # Log para debugging
     if initial_superadmin:
         logger.info(f"🔍 INITIAL_SUPERADMIN_EMAIL encontrado: {initial_superadmin}")
-    else:
-        logger.info(f"⚠️ INITIAL_SUPERADMIN_EMAIL no configurado")
-    
     if initial_users:
         logger.info(f"🔍 INITIAL_AUTHORIZED_EMAILS encontrado: {initial_users}")
-    else:
-        logger.info(f"⚠️ INITIAL_AUTHORIZED_EMAILS no configurado")
+    if persistent_users:
+        logger.info(f"🔍 AUTHORIZED_USERS_LIST encontrado: {persistent_users}")
+    if persistent_superadmins:
+        logger.info(f"🔍 SUPERADMIN_USERS_LIST encontrado: {persistent_superadmins}")
     
     try:
+        # Primero, inicializar desde variables de entorno (fuente de verdad persistente)
+        authorized_emails = set()
+        superadmin_emails = set()
+        
+        # Cargar superadmins persistentes
+        if persistent_superadmins:
+            for email in persistent_superadmins.split(','):
+                email = email.strip().lower()
+                if email:
+                    superadmin_emails.add(email)
+                    authorized_emails.add(email)  # Los superadmins también están autorizados
+            logger.info(f"✅ Cargados {len(superadmin_emails)} superadmins desde SUPERADMIN_USERS_LIST")
+        elif initial_superadmin:
+            # Fallback a INITIAL_SUPERADMIN_EMAIL si no hay lista persistente
+            superadmin_emails.add(initial_superadmin.lower())
+            authorized_emails.add(initial_superadmin.lower())
+            logger.info(f"✅ Cargado superadmin desde INITIAL_SUPERADMIN_EMAIL: {initial_superadmin}")
+        
+        # Cargar usuarios autorizados persistentes
+        if persistent_users:
+            for email in persistent_users.split(','):
+                email = email.strip().lower()
+                if email and email not in superadmin_emails:  # No duplicar superadmins
+                    authorized_emails.add(email)
+            logger.info(f"✅ Cargados usuarios desde AUTHORIZED_USERS_LIST")
+        elif initial_users:
+            # Fallback a INITIAL_AUTHORIZED_EMAILS si no hay lista persistente
+            for email in initial_users.split(','):
+                email = email.strip().lower()
+                if email and email not in superadmin_emails:
+                    authorized_emails.add(email)
+            logger.info(f"✅ Cargados usuarios desde INITIAL_AUTHORIZED_EMAILS")
+        
+        # Luego, intentar cargar desde archivo (puede tener usuarios adicionales agregados desde el frontend)
         if os.path.exists(AUTHORIZED_USERS_FILE):
-            with open(AUTHORIZED_USERS_FILE, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                # Normalizar emails a minúsculas para comparación
-                authorized_emails = set(email.lower().strip() for email in data.get('authorized_emails', []))
-                superadmin_emails = set(email.lower().strip() for email in data.get('superadmin_emails', []))
-                
-                logger.info(f"📂 Archivo existe. Usuarios cargados: {len(authorized_emails)} autorizados, {len(superadmin_emails)} superadmins")
-                
-                # Si hay variables de entorno y el archivo está vacío, usar las variables
-                if not authorized_emails and not superadmin_emails:
-                    logger.info(f"🔄 Archivo vacío, intentando inicializar desde variables de entorno...")
-                    if initial_superadmin:
-                        superadmin_emails.add(initial_superadmin.lower())
-                        authorized_emails.add(initial_superadmin.lower())
-                        logger.info(f"✅ Agregado superadmin desde INITIAL_SUPERADMIN_EMAIL: {initial_superadmin}")
-                    if initial_users:
-                        for email in initial_users.split(','):
-                            email = email.strip().lower()
-                            if email:
-                                authorized_emails.add(email)
-                        logger.info(f"✅ Agregados usuarios desde INITIAL_AUTHORIZED_EMAILS: {initial_users}")
+            try:
+                with open(AUTHORIZED_USERS_FILE, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    # Agregar usuarios del archivo a los de variables de entorno (merge)
+                    file_authorized = set(email.lower().strip() for email in data.get('authorized_emails', []))
+                    file_superadmins = set(email.lower().strip() for email in data.get('superadmin_emails', []))
                     
-                    # Guardar los usuarios inicializados
-                    if authorized_emails or superadmin_emails:
-                        logger.info(f"💾 Guardando usuarios inicializados en archivo...")
-                        save_authorized_users()
-                    else:
-                        logger.warning(f"⚠️ No se encontraron variables de entorno para inicializar usuarios")
-                
-                logger.info(f"✅ Cargados {len(authorized_emails)} usuarios autorizados: {list(authorized_emails)}")
-                logger.info(f"✅ Cargados {len(superadmin_emails)} superadmins: {list(superadmin_emails)}")
+                    # Merge: combinar usuarios de archivo con los de variables de entorno
+                    authorized_emails.update(file_authorized)
+                    superadmin_emails.update(file_superadmins)
+                    # Asegurar que superadmins también estén en authorized
+                    authorized_emails.update(superadmin_emails)
+                    
+                    logger.info(f"📂 Archivo encontrado. Merge: {len(file_authorized)} usuarios del archivo + usuarios de variables de entorno")
+            except Exception as e:
+                logger.warning(f"⚠️ Error al leer archivo {AUTHORIZED_USERS_FILE}: {e}. Usando solo variables de entorno.")
+        
+        # Guardar el estado actual en el archivo (para que esté disponible durante la sesión)
+        if authorized_emails or superadmin_emails:
+            save_authorized_users()
+            logger.info(f"✅ Total: {len(authorized_emails)} usuarios autorizados, {len(superadmin_emails)} superadmins")
+            logger.info(f"📋 Usuarios autorizados: {sorted(authorized_emails)}")
+            logger.info(f"👑 Superadmins: {sorted(superadmin_emails)}")
         else:
-            logger.warning(f"⚠️ Archivo {AUTHORIZED_USERS_FILE} no encontrado. Inicializando desde variables de entorno...")
+            logger.warning(f"⚠️ No se encontraron usuarios en variables de entorno ni en archivo.")
             
-            # Inicializar desde variables de entorno si están disponibles
-            if initial_superadmin:
-                superadmin_emails.add(initial_superadmin.lower())
-                authorized_emails.add(initial_superadmin.lower())
-                logger.info(f"✅ Inicializando superadmin desde INITIAL_SUPERADMIN_EMAIL: {initial_superadmin}")
-            
-            if initial_users:
-                for email in initial_users.split(','):
-                    email = email.strip().lower()
-                    if email:
-                        authorized_emails.add(email)
-                logger.info(f"✅ Inicializando usuarios desde INITIAL_AUTHORIZED_EMAILS: {initial_users}")
-            
-            # Crear archivo con los usuarios inicializados
-            initial_data = {
-                "superadmin_emails": list(superadmin_emails),
-                "authorized_emails": list(authorized_emails),
-                "note": "Los superadmins pueden gestionar usuarios. Los emails deben coincidir exactamente con los emails de Google."
-            }
-            with open(AUTHORIZED_USERS_FILE, 'w', encoding='utf-8') as f:
-                json.dump(initial_data, f, indent=2, ensure_ascii=False)
-            
-            if authorized_emails or superadmin_emails:
-                logger.info(f"✅ Archivo {AUTHORIZED_USERS_FILE} creado con usuarios iniciales.")
-            else:
-                logger.warning(f"⚠️ No se encontraron usuarios en variables de entorno. Archivo creado vacío.")
     except Exception as e:
         logger.error(f"❌ Error al cargar usuarios autorizados: {e}")
         authorized_emails = set()
