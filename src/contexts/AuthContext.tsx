@@ -135,15 +135,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         alert(`Error al iniciar sesión:\n\n${errorMessage}\n\nPor favor, verifica tu configuración o contacta al administrador.`)
       }
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error en Google OAuth:', error)
       let errorMessage = 'Error al iniciar sesión con Google'
       
-      if (error.error === 'popup_closed_by_user') {
-        errorMessage = 'La ventana de inicio de sesión fue cerrada. Por favor, intenta nuevamente.'
-      } else if (error.error === 'access_denied') {
+      const errorCode = error?.error || error?.type || ''
+      
+      if (errorCode === 'popup_closed_by_user' || errorCode === 'popup_blocked') {
+        errorMessage = 'La ventana de inicio de sesión fue cerrada o bloqueada. Por favor, intenta nuevamente.'
+      } else if (errorCode === 'access_denied') {
         errorMessage = 'Acceso denegado. Por favor, verifica que tu email esté autorizado.'
-      } else if (error.error === 'invalid_request') {
+      } else if (errorCode === 'invalid_request') {
         errorMessage = 'Error de configuración: La URL de Netlify no está configurada correctamente en Google OAuth. Contacta al administrador.'
       }
       
