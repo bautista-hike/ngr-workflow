@@ -248,6 +248,13 @@ Netlify detectará automáticamente que es un proyecto React/Vite. Configura:
   dist
   ```
 
+**⚠️ Si Netlify detecta Python automáticamente:**
+1. En "Build settings", haz clic en "Show advanced"
+2. En "Environment variables", agrega:
+   - `PYTHON_VERSION` = (dejar vacío)
+   - `NODE_VERSION` = `20`
+3. Guarda y redespliega
+
 **⚠️ IMPORTANTE**: 
 - Si Netlify detecta Python y falla, asegúrate de que `netlify.toml` tenga la configuración de `NODE_VERSION`
 - El archivo `.nvmrc` también ayuda a que Netlify use Node.js en lugar de Python
@@ -465,14 +472,33 @@ Después de cambiar variables de entorno:
 
 **Síntomas**: Error "python-build: definition not found" o "mise ERROR"
 
-**Soluciones**:
-1. Verifica que `netlify.toml` tenga `[build.environment]` con `NODE_VERSION = "20"`
-2. Crea un archivo `.nvmrc` en la raíz con el contenido: `20`
-3. En Netlify, ve a "Site settings" → "Build & deploy" → "Environment"
-4. Agrega variable de entorno: `NODE_VERSION` = `20`
-5. Si el problema persiste, en "Build settings", especifica explícitamente:
-   - **Build command**: `npm install && npm run build`
-   - **Publish directory**: `dist`
+**Causa**: Netlify detecta archivos de Python (`requirements.txt`, `runtime.txt`, `Procfile`) y intenta instalar Python automáticamente.
+
+**Soluciones (en orden de prioridad)**:
+
+1. **En Netlify Dashboard - Environment Variables** (MÁS IMPORTANTE):
+   - Ve a "Site settings" → "Build & deploy" → "Environment"
+   - Agrega estas variables:
+     - `NODE_VERSION` = `20`
+     - `PYTHON_VERSION` = (dejar completamente vacío o no agregar esta variable)
+     - `MISE_PYTHON` = (dejar completamente vacío)
+   - Guarda los cambios
+
+2. **Verifica archivos de configuración**:
+   - `netlify.toml` debe tener `NODE_VERSION = "20"` y `PYTHON_VERSION = ""`
+   - `.nvmrc` debe existir con el contenido: `20`
+   - `.mise.toml` debe existir con `python = ""` para deshabilitar Python
+
+3. **En Build Settings**:
+   - Especifica explícitamente:
+     - **Build command**: `npm install && npm run build`
+     - **Publish directory**: `dist`
+   - **Base directory**: Dejar vacío
+
+4. **Si el problema persiste**:
+   - Haz commit y push de todos los archivos de configuración
+   - En Netlify, ve a "Deploys" → "Clear cache and retry deploy"
+   - O elimina el sitio y créalo de nuevo (última opción)
 
 ### Problema 6: Backend se "duerme" en Render (Plan Gratuito)
 

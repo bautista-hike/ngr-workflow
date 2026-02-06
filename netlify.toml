@@ -5,6 +5,10 @@
 [build.environment]
   NODE_VERSION = "20"
   NPM_VERSION = "10"
+  PYTHON_VERSION = ""
+  MISE_PYTHON = ""
+  # Deshabilitar detección automática de Python
+  NPM_FLAGS = "--legacy-peer-deps"
 
 [[redirects]]
   from = "/*"
