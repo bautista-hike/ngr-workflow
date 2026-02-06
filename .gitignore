@@ -30,6 +30,10 @@ google-credentials.json
 # Authorized users (sensitive data)
 authorized_users.json
 
+# runtime.txt - solo necesario para Render, pero causa problemas en Netlify
+# Render usa render.yaml que especifica PYTHON_VERSION, así que runtime.txt no es necesario
+runtime.txt
+
 # Python (solo para backend, no necesario en Netlify)
 __pycache__/
 *.py[cod]
