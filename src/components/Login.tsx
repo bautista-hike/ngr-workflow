@@ -7,6 +7,13 @@ export default function Login() {
     <div className="min-h-screen bg-black flex items-center justify-center">
       <div className="max-w-md w-full bg-gray-900 rounded-lg shadow-xl border border-gray-800 p-8">
         <div className="text-center mb-8">
+          <div className="flex justify-center mb-4">
+            <img 
+              src="/ngr-logo.png" 
+              alt="NGR Logo" 
+              className="h-16 w-auto"
+            />
+          </div>
           <h1 className="text-3xl font-bold text-white mb-2">
             Procesamiento y Validación de Facturas
           </h1>

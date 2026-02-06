@@ -10,13 +10,20 @@ export default function Header() {
     <header className="bg-gray-900 shadow-lg border-b border-gray-800 mb-8">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-white">
-              Procesamiento y Validación de Facturas
-            </h1>
-            <p className="text-sm text-gray-300 mt-1">
-              Carga una imagen de factura para extraer y validar sus datos
-            </p>
+          <div className="flex items-center gap-4">
+            <img 
+              src="/ngr-logo.png" 
+              alt="NGR Logo" 
+              className="h-12 w-auto"
+            />
+            <div>
+              <h1 className="text-2xl font-bold text-white">
+                Procesamiento y Validación de Facturas
+              </h1>
+              <p className="text-sm text-gray-300 mt-1">
+                Carga una imagen de factura para extraer y validar sus datos
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-4">
             {user && (
