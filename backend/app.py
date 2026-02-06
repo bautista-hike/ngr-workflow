@@ -51,8 +51,13 @@ superadmin_emails = set()
 _users_file_lock = Lock()
 
 def load_authorized_users():
-    """Cargar lista de usuarios autorizados y superadmins desde el archivo JSON"""
+    """Cargar lista de usuarios autorizados y superadmins desde el archivo JSON o variables de entorno"""
     global authorized_emails, superadmin_emails
+    
+    # Primero, intentar cargar desde variables de entorno (para inicialización)
+    initial_superadmin = os.getenv('INITIAL_SUPERADMIN_EMAIL', '').strip()
+    initial_users = os.getenv('INITIAL_AUTHORIZED_EMAILS', '').strip()
+    
     try:
         if os.path.exists(AUTHORIZED_USERS_FILE):
             with open(AUTHORIZED_USERS_FILE, 'r', encoding='utf-8') as f:
@@ -60,24 +65,55 @@ def load_authorized_users():
                 # Normalizar emails a minúsculas para comparación
                 authorized_emails = set(email.lower().strip() for email in data.get('authorized_emails', []))
                 superadmin_emails = set(email.lower().strip() for email in data.get('superadmin_emails', []))
+                
+                # Si hay variables de entorno y el archivo está vacío, usar las variables
+                if not authorized_emails and not superadmin_emails:
+                    if initial_superadmin:
+                        superadmin_emails.add(initial_superadmin.lower())
+                        authorized_emails.add(initial_superadmin.lower())
+                        logger.info(f"✅ Usando INITIAL_SUPERADMIN_EMAIL: {initial_superadmin}")
+                    if initial_users:
+                        for email in initial_users.split(','):
+                            email = email.strip().lower()
+                            if email:
+                                authorized_emails.add(email)
+                        logger.info(f"✅ Usando INITIAL_AUTHORIZED_EMAILS: {initial_users}")
+                    
+                    # Guardar los usuarios inicializados
+                    if authorized_emails or superadmin_emails:
+                        save_authorized_users()
+                
                 logger.info(f"✅ Cargados {len(authorized_emails)} usuarios autorizados: {list(authorized_emails)}")
                 logger.info(f"✅ Cargados {len(superadmin_emails)} superadmins: {list(superadmin_emails)}")
         else:
-            logger.warning(f"⚠️ Archivo {AUTHORIZED_USERS_FILE} no encontrado. Creando archivo de ejemplo...")
-            # Crear archivo de ejemplo
-            example_data = {
-                "superadmin_emails": [],
-                "authorized_emails": [
-                    "usuario1@ejemplo.com",
-                    "usuario2@ejemplo.com"
-                ],
-                "note": "Los superadmins pueden gestionar usuarios. Agrega los emails autorizados en esta lista."
+            logger.warning(f"⚠️ Archivo {AUTHORIZED_USERS_FILE} no encontrado. Inicializando desde variables de entorno...")
+            
+            # Inicializar desde variables de entorno si están disponibles
+            if initial_superadmin:
+                superadmin_emails.add(initial_superadmin.lower())
+                authorized_emails.add(initial_superadmin.lower())
+                logger.info(f"✅ Inicializando superadmin desde INITIAL_SUPERADMIN_EMAIL: {initial_superadmin}")
+            
+            if initial_users:
+                for email in initial_users.split(','):
+                    email = email.strip().lower()
+                    if email:
+                        authorized_emails.add(email)
+                logger.info(f"✅ Inicializando usuarios desde INITIAL_AUTHORIZED_EMAILS: {initial_users}")
+            
+            # Crear archivo con los usuarios inicializados
+            initial_data = {
+                "superadmin_emails": list(superadmin_emails),
+                "authorized_emails": list(authorized_emails),
+                "note": "Los superadmins pueden gestionar usuarios. Los emails deben coincidir exactamente con los emails de Google."
             }
             with open(AUTHORIZED_USERS_FILE, 'w', encoding='utf-8') as f:
-                json.dump(example_data, f, indent=2, ensure_ascii=False)
-            logger.info(f"📝 Archivo {AUTHORIZED_USERS_FILE} creado. Agrega los emails autorizados.")
-            authorized_emails = set()
-            superadmin_emails = set()
+                json.dump(initial_data, f, indent=2, ensure_ascii=False)
+            
+            if authorized_emails or superadmin_emails:
+                logger.info(f"✅ Archivo {AUTHORIZED_USERS_FILE} creado con usuarios iniciales.")
+            else:
+                logger.warning(f"⚠️ No se encontraron usuarios en variables de entorno. Archivo creado vacío.")
     except Exception as e:
         logger.error(f"❌ Error al cargar usuarios autorizados: {e}")
         authorized_emails = set()
