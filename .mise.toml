@@ -3,4 +3,4 @@ node = "20"
 
 [settings]
 # No instalar Python automáticamente
-python = ""
+python = { enabled = false }
