@@ -1,0 +1,5 @@
+[tools]
+node = "20"
+
+# NO instalar Python - este proyecto solo usa Node.js en Netlify
+# Python solo se usa en Render (backend), no en Netlify (frontend)

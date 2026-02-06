@@ -15,6 +15,10 @@
   SKIP_PYTHON_INSTALL = "true"
   # Forzar uso de Node.js
   NPM_CONFIG_PYTHON = ""
+  # Deshabilitar mise para Python
+  MISE_SKIP_PYTHON = "true"
+  # Evitar que mise lea runtime.txt
+  MISE_NO_PYTHON = "1"
 
 [[redirects]]
   from = "/*"
