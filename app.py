@@ -999,6 +999,7 @@ if __name__ == '__main__':
         print("ADVERTENCIA: BIGQUERY_PROJECT_ID no está configurada en .env")
     
     # Permitir cambiar el puerto desde variable de entorno o argumento
+    # Render siempre proporciona PORT, así que lo usamos directamente
     port = int(os.getenv('PORT', 8000))
     if len(sys.argv) > 1:
         try:
@@ -1006,23 +1007,29 @@ if __name__ == '__main__':
         except ValueError:
             pass
     
-    # Configurar número de workers para mayor concurrencia
-    # Por defecto: 1 worker. Para producción, usar 4-8 workers según CPU
-    workers = int(os.getenv('UVICORN_WORKERS', '1'))
+    # Detectar si estamos en Render (tiene PORT definido y no es 8000, o tiene RENDER)
+    is_render = os.getenv('RENDER') == 'true' or (os.getenv('PORT') and int(os.getenv('PORT', 8000)) != 8000)
     
-    if workers > 1:
-        logger.info(f"🚀 Iniciando servidor con {workers} workers para mayor concurrencia")
-        logger.info(f"📊 Configuración n8n: timeout={N8N_TIMEOUT}s, retries={N8N_MAX_RETRIES}, backoff={N8N_RETRY_BACKOFF}")
-        # Usar uvicorn.run con workers solo funciona en modo producción
-        # Para desarrollo, usar: uvicorn app:app --workers 4
-        uvicorn.run(
-            "app:app", 
-            host="0.0.0.0", 
-            port=port,
-            workers=workers,
-            log_level="info"
-        )
+    # En Render, siempre usar 1 worker para evitar problemas con detección de puerto
+    # En local, permitir múltiples workers si está configurado
+    if is_render:
+        workers = 1
+        logger.info(f"🚀 Iniciando servidor en Render (puerto {port}, 1 worker)")
     else:
-        logger.info("🚀 Iniciando servidor en modo desarrollo (1 worker)")
-        logger.info(f"📊 Configuración n8n: timeout={N8N_TIMEOUT}s, retries={N8N_MAX_RETRIES}, backoff={N8N_RETRY_BACKOFF}")
-        uvicorn.run(app, host="0.0.0.0", port=port)
+        workers = int(os.getenv('UVICORN_WORKERS', '1'))
+        if workers > 1:
+            logger.info(f"🚀 Iniciando servidor con {workers} workers para mayor concurrencia")
+        else:
+            logger.info("🚀 Iniciando servidor en modo desarrollo (1 worker)")
+    
+    logger.info(f"📊 Configuración n8n: timeout={N8N_TIMEOUT}s, retries={N8N_MAX_RETRIES}, backoff={N8N_RETRY_BACKOFF}")
+    logger.info(f"🌐 Escuchando en 0.0.0.0:{port}")
+    
+    # Siempre usar un solo worker para evitar problemas con Render
+    # Render maneja el escalado horizontalmente, no necesitamos múltiples workers
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=port,
+        log_level="info"
+    )
