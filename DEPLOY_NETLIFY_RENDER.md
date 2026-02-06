@@ -123,7 +123,7 @@ Completa estos campos:
 - **Runtime**: `Python 3`
 - **Build Command**: 
   ```bash
-  pip install -r requirements.txt
+  pip install --upgrade pip && pip install -r requirements.txt
   ```
 - **Start Command**: 
   ```bash
@@ -157,6 +157,8 @@ N8N_MAX_RETRIES=3
 N8N_RETRY_BACKOFF=1.5
 UVICORN_WORKERS=2
 FRONTEND_URL=https://tu-app.netlify.app
+PIP_NO_CACHE_DIR=1
+PIP_DISABLE_PIP_VERSION_CHECK=1
 ```
 
 **⚠️ IMPORTANTE**: 
@@ -383,6 +385,10 @@ Después de cambiar variables de entorno:
 2. Verifica que `Procfile` tenga el comando correcto: `web: python app.py`
 3. Revisa los logs en Render para ver el error específico
 4. Asegúrate de que `PORT` esté configurado como variable de entorno
+5. Si ves errores de compilación con Rust/maturin:
+   - Actualiza `requirements.txt` con versiones más recientes (ya actualizado)
+   - Usa el Build Command: `pip install --upgrade pip && pip install -r requirements.txt`
+   - Agrega variables de entorno: `PIP_NO_CACHE_DIR=1` y `PIP_DISABLE_PIP_VERSION_CHECK=1`
 
 ### Problema 2: Error de Credenciales de Google Cloud
 
