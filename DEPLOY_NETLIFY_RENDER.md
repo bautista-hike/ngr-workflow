@@ -144,7 +144,7 @@ N8N_WEBHOOK_URL=https://tu-n8n-instance.com/webhook/xxx
 BIGQUERY_PROJECT_ID=tu-project-id
 BIGQUERY_DATASET_ID=tu-dataset-id
 BIGQUERY_TABLE_ID=facturas
-GOOGLE_APPLICATION_CREDENTIALS=/opt/render/project/src/credentials.json
+GOOGLE_APPLICATION_CREDENTIALS=/etc/secrets/bigquery-388915-b0c85c77fc62.json
 GOOGLE_CLIENT_ID=tu-client-id.apps.googleusercontent.com
 PORT=8000
 ```
@@ -174,9 +174,15 @@ Render necesita acceso a tus credenciales de BigQuery. Hay dos opciones:
 1. En Render, ve a tu servicio
 2. Ve a "Environment" → "Secret Files"
 3. Haz clic en "Add Secret File"
-4. **Key**: `GOOGLE_APPLICATION_CREDENTIALS`
-5. **Value**: Pega el contenido completo de tu archivo JSON de credenciales de Google Cloud
+4. **Filename**: El nombre del archivo (ej: `bigquery-388915-b0c85c77fc62.json`)
+5. **Contents**: Pega el contenido completo de tu archivo JSON de credenciales de Google Cloud
 6. Guarda
+
+**⚠️ IMPORTANTE**: 
+- Render guarda los Secret Files en: `/etc/secrets/<filename>`
+- Si tu archivo se llama `bigquery-388915-b0c85c77fc62.json`, la ruta será: `/etc/secrets/bigquery-388915-b0c85c77fc62.json`
+- La variable de entorno `GOOGLE_APPLICATION_CREDENTIALS` debe apuntar a esta ruta exacta
+- El archivo JSON debe ser válido (sin espacios extra, sin saltos de línea al final)
 
 #### Opción B: Variable de Entorno (Alternativa)
 
@@ -242,7 +248,10 @@ Netlify detectará automáticamente que es un proyecto React/Vite. Configura:
   dist
   ```
 
-**⚠️ NOTA**: Si Netlify no detecta automáticamente, haz clic en "Show advanced" y configura manualmente.
+**⚠️ IMPORTANTE**: 
+- Si Netlify detecta Python y falla, asegúrate de que `netlify.toml` tenga la configuración de `NODE_VERSION`
+- El archivo `.nvmrc` también ayuda a que Netlify use Node.js en lugar de Python
+- Si Netlify no detecta automáticamente, haz clic en "Show advanced" y configura manualmente
 
 ### Paso 4: Configurar Variables de Entorno
 
@@ -270,13 +279,20 @@ Crea un archivo `netlify.toml` en la raíz de tu proyecto:
   command = "npm install && npm run build"
   publish = "dist"
 
+[build.environment]
+  NODE_VERSION = "20"
+  NPM_VERSION = "10"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
 ```
 
-Este archivo asegura que las rutas de React funcionen correctamente.
+Este archivo asegura que:
+- Las rutas de React funcionen correctamente
+- Netlify use Node.js 20 (no Python)
+- El build se ejecute correctamente
 
 ### Paso 6: Desplegar
 
@@ -322,12 +338,19 @@ https://tu-app.netlify.app
 ### Paso 3: Actualizar Variables de Entorno
 
 **En Render (Backend):**
-- Actualiza `GOOGLE_CLIENT_ID` con tu Client ID completo
+- Actualiza `GOOGLE_CLIENT_ID` con tu Client ID completo (ej: `624953786850-6ka3nak3...apps.googleusercontent.com`)
 - Actualiza `FRONTEND_URL` con tu URL de Netlify
+- **Nota**: El backend no usa `GOOGLE_CLIENT_ID` actualmente, pero es bueno tenerlo configurado por si lo necesitas en el futuro
 
 **En Netlify (Frontend):**
-- Actualiza `VITE_GOOGLE_CLIENT_ID` con tu Client ID completo
-- Actualiza `VITE_API_URL` con tu URL de Render
+- Actualiza `VITE_GOOGLE_CLIENT_ID` con tu Client ID completo (ej: `624953786850-6ka3nak3...apps.googleusercontent.com`)
+- Actualiza `VITE_API_URL` con tu URL de Render (ej: `https://tu-backend.onrender.com`)
+
+**⚠️ IMPORTANTE sobre el Client Secret:**
+- El archivo `client_secret_...` que tienes en Secret Files **NO se necesita** para el login OAuth
+- Solo necesitas el **Client ID** (que es público y seguro compartir)
+- El `client_secret` se usa en otros flujos OAuth, pero no en el que estamos usando (OAuth 2.0 con Authorization Code)
+- Puedes dejarlo en Secret Files si quieres, pero no es necesario para que funcione el login
 
 ### Paso 4: Redesplegar
 
@@ -395,9 +418,19 @@ Después de cambiar variables de entorno:
 **Síntomas**: Error al conectarse a BigQuery
 
 **Soluciones**:
-1. Verifica que `GOOGLE_APPLICATION_CREDENTIALS` apunte al archivo correcto
-2. Si usas Secret Files, asegúrate de que el contenido sea válido JSON
-3. Verifica que la cuenta de servicio tenga permisos en BigQuery
+1. Verifica que `GOOGLE_APPLICATION_CREDENTIALS` apunte al archivo correcto: `/etc/secrets/<nombre-del-archivo>.json`
+   - El nombre del archivo debe coincidir exactamente con el que pusiste en Secret Files
+   - Ejemplo: Si el Secret File se llama `bigquery-388915-b0c85c77fc62.json`, usa: `/etc/secrets/bigquery-388915-b0c85c77fc62.json`
+2. Si usas Secret Files:
+   - Verifica que el contenido del JSON sea válido (sin espacios extra, sin saltos de línea al final)
+   - Verifica que el nombre del archivo en Secret Files coincida con el de la variable de entorno
+   - Verifica en los logs que el archivo se encontró: busca "Usando credenciales de: /etc/secrets/..."
+3. Si el archivo no existe, verifica en los logs de Render si hay errores al crear el Secret File
+4. Verifica que la cuenta de servicio tenga permisos en BigQuery:
+   - BigQuery Data Editor
+   - BigQuery Job User
+   - BigQuery User
+5. Prueba descargar el archivo JSON nuevamente desde Google Cloud Console
 
 ### Problema 3: CORS Error
 
@@ -427,6 +460,19 @@ Después de cambiar variables de entorno:
 2. Verifica que el build haya sido exitoso (revisa logs)
 3. Abre la consola del navegador para ver errores JavaScript
 4. Verifica que las variables de entorno empiecen con `VITE_`
+
+### Problema 8: Netlify intenta instalar Python en lugar de Node.js
+
+**Síntomas**: Error "python-build: definition not found" o "mise ERROR"
+
+**Soluciones**:
+1. Verifica que `netlify.toml` tenga `[build.environment]` con `NODE_VERSION = "20"`
+2. Crea un archivo `.nvmrc` en la raíz con el contenido: `20`
+3. En Netlify, ve a "Site settings" → "Build & deploy" → "Environment"
+4. Agrega variable de entorno: `NODE_VERSION` = `20`
+5. Si el problema persiste, en "Build settings", especifica explícitamente:
+   - **Build command**: `npm install && npm run build`
+   - **Publish directory**: `dist`
 
 ### Problema 6: Backend se "duerme" en Render (Plan Gratuito)
 

@@ -30,6 +30,19 @@ google-credentials.json
 # Authorized users (sensitive data)
 authorized_users.json
 
+# Python (solo para backend, no necesario en Netlify)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+*.egg-info/
+.python-version
+
 # IDE
 .vscode/
 .idea/
