@@ -1,4 +1,6 @@
-# Archivos de Python/Backend (solo necesarios para Render, no para Netlify)
+# Ignorar TODOS los archivos de Python/Backend para evitar detección automática
+# Ignorar el directorio backend/ completo
+backend/
 requirements.txt
 runtime.txt
 Procfile
@@ -11,6 +13,6 @@ __pycache__/
 *.pyc
 .python-version
 render.yaml
-
-# Archivos de configuración del backend (pero mantener package.json y package-lock.json)
 authorized_users.json
+*.log
+server.log
