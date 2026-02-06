@@ -41,7 +41,10 @@ logger = logging.getLogger(__name__)
 app = FastAPI(title="Invoice Processing API", version="1.0.0")
 
 # Cargar lista de usuarios autorizados
-AUTHORIZED_USERS_FILE = 'authorized_users.json'
+# Buscar authorized_users.json en el directorio del script o en el directorio actual
+import os
+_script_dir = os.path.dirname(os.path.abspath(__file__))
+AUTHORIZED_USERS_FILE = os.path.join(_script_dir, 'authorized_users.json')
 authorized_emails = set()
 superadmin_emails = set()
 # Lock para proteger escrituras concurrentes al archivo
