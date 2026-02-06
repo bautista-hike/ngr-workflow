@@ -2,8 +2,9 @@ services:
   - type: web
     name: ngr-workflow-backend
     env: python
-    buildCommand: cd backend && pip install --upgrade pip && pip install -r requirements.txt
+    buildCommand: pip install --upgrade pip && pip install -r backend/requirements.txt
     startCommand: cd backend && python app.py
+    rootDir: backend
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
