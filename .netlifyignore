@@ -1,0 +1,21 @@
+# Archivos de Python/Backend (solo necesarios para Render, no para Netlify)
+requirements.txt
+runtime.txt
+Procfile
+app.py
+invoice_parser.py
+*.py
+venv/
+env/
+__pycache__/
+*.pyc
+.python-version
+render.yaml
+
+# Archivos de configuración del backend
+authorized_users.json
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!netlify.toml
