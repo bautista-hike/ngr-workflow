@@ -1,14 +1,20 @@
 [build]
   command = "npm ci && npm run build"
   publish = "dist"
+  base = "."
 
 [build.environment]
   NODE_VERSION = "20"
   NPM_VERSION = "10"
+  # Forzar que Netlify NO detecte Python
   PYTHON_VERSION = ""
   MISE_PYTHON = ""
-  # Deshabilitar detección automática de Python
+  PIPENV_PYTHON = ""
   NPM_FLAGS = "--legacy-peer-deps"
+  # Deshabilitar detección automática de herramientas
+  SKIP_PYTHON_INSTALL = "true"
+  # Forzar uso de Node.js
+  NPM_CONFIG_PYTHON = ""
 
 [[redirects]]
   from = "/*"
