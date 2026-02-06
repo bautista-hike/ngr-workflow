@@ -12,10 +12,5 @@ __pycache__/
 .python-version
 render.yaml
 
-# Archivos de configuración del backend
+# Archivos de configuración del backend (pero mantener package.json y package-lock.json)
 authorized_users.json
-*.json
-!package.json
-!package-lock.json
-!tsconfig.json
-!netlify.toml

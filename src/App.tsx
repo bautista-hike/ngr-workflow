@@ -189,7 +189,7 @@ function App() {
             </div>
           ) : (
             <QuickSaveOption
-              data={invoiceData}
+              data={invoiceData!}
               invoiceImage={invoiceImage}
               onSaveSuccess={handleSaveSuccess}
               onReview={handleReview}
